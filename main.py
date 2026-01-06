@@ -1,82 +1,59 @@
+import config
+import updater
 import os
-import sys
-import git 
-import asyncio
-from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# --- بيانات جيت هاب الثابتة ---
-API_ID = 29827519 
-API_HASH = "9afadf1ec94457c6bb383139555a2bdc"
-GIT_TOKEN = "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" 
-GH_OWNER = "Yasser0878"
-GH_REPO = "yaser"
-REPO_URL = f"https://{GIT_TOKEN}@github.com/{GH_OWNER}/{GH_REPO}.git"
+def create_bot():
+    config.API_ID = input("API_ID: ")
+    config.API_HASH = input("API_HASH: ")
+    config.BOT_TOKEN = input("BOT TOKEN: ")
+    config.DEV_ID = input("DEV ID: ")
+    config.GIT_TOKEN = input("GITHUB TOKEN: ")
+    config.GH_OWNER = input("GH OWNER: ")
+    config.GH_REPO = input("GH REPO: ")
 
-VARS_FILE = "vars.txt"
+    with open("config.py", "w") as f:
+        f.write(f'''
+API_ID = {config.API_ID}
+API_HASH = "{config.API_HASH}"
 
-def get_stored_vars():
-    if os.path.exists(VARS_FILE):
-        with open(VARS_FILE, "r") as f:
-            lines = f.readlines()
-            if len(lines) >= 2:
-                try: return lines[0].strip(), int(lines[1].strip())
-                except: return None, None
-    return None, None
+BOT_TOKEN = "{config.BOT_TOKEN}"
+DEV_ID = {config.DEV_ID}
 
-BOT_TOKEN, ADMIN_ID = get_stored_vars()
+GIT_TOKEN = "{config.GIT_TOKEN}"
+GH_OWNER = "{config.GH_OWNER}"
+GH_REPO = "{config.GH_REPO}"
 
-if not BOT_TOKEN:
-    print("⚠️ إعداد أول مرة...")
-    BOT_TOKEN = input("أدخل توكن البوت: ")
-    ADMIN_ID = input("أدخل آيدي المطور: ")
-    with open(VARS_FILE, "w") as f:
-        f.write(f"{BOT_TOKEN}\n{ADMIN_ID}")
-    ADMIN_ID = int(ADMIN_ID)
+def repo_url():
+    return f"https://{{GIT_TOKEN}}@github.com/{{GH_OWNER}}/{{GH_REPO}}.git"
+''')
 
-# تشغيل البوت مع خاصية المجلدات (Plugins)
-app = Client(
-    "updater_session", 
-    api_id=API_ID, 
-    api_hash=API_HASH, 
-    bot_token=BOT_TOKEN,
-    plugins=dict(root="plugins") 
-)
+    print("✅ تم إنشاء البوت")
 
-@app.on_message(filters.command("start") & filters.user(ADMIN_ID) & filters.private)
-async def start_panel(client, message):
-    btn = InlineKeyboardMarkup([[
-        InlineKeyboardButton("🔄 تحديث السورس من جيت هاب", callback_data="full_update")
-    ]])
-    await message.reply_text(
-        f"🛠 **أهلاً بك يا مطور ({GH_OWNER})**\n\n"
-        "لوحة التحكم هذه مخصصة لك فقط لتحديث الملفات من GitHub وإعادة التشغيل تلقائياً.",
-        reply_markup=btn
-    )
+def delete_bot():
+    if os.path.exists("config.py"):
+        os.remove("config.py")
+        print("🗑️ تم حذف البوت")
 
-@app.on_callback_query(filters.regex("full_update"))
-async def run_update(client, callback_query):
-    if callback_query.from_user.id != ADMIN_ID: return
-    try:
-        await callback_query.answer("⏳ جاري جلب التحديثات...", show_alert=False)
-        if not os.path.exists(".git"):
-            repo = git.Repo.init(".")
-            if "origin" not in [r.name for r in repo.remotes]:
-                repo.create_remote("origin", REPO_URL)
-        else:
-            repo = git.Repo(".")
-            origin = repo.remotes.origin
-            origin.set_url(REPO_URL)
+def run_bot():
+    os.system("python bot/bot.py")
 
-        repo.git.fetch('--all')
-        repo.git.reset('--hard', 'origin/main') 
-        
-        await callback_query.edit_message_text("✅ تم التحديث بنجاح! جاري إعادة التشغيل الآن...")
-        
-        # إنهاء الجلسة بأمان وإعادة التشغيل
-        asyncio.get_event_loop().call_later(1, lambda: os.execl(sys.executable, sys.executable, *sys.argv))
-    except Exception as e:
-        await callback_query.edit_message_text(f"❌ فشل التحديث: {e}")
+def menu():
+    print("""
+1️⃣ إنشاء بوت
+2️⃣ حذف بوت
+3️⃣ تشغيل بوت الحماية
+4️⃣ تحديث من GitHub 🔄
+0️⃣ خروج
+""")
 
-print("✅ البوت يعمل الآن...")
-app.run()
+menu()
+c = input("اختيارك: ")
+
+if c == "1":
+    create_bot()
+elif c == "2":
+    delete_bot()
+elif c == "3":
+    run_bot()
+elif c == "4":
+    updater.update_project()
