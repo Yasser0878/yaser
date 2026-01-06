@@ -5,7 +5,7 @@ import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# --- البيانات الثابتة ---
+# --- بيانات جيت هاب الثابتة ---
 API_ID = 29827519 
 API_HASH = "9afadf1ec94457c6bb383139555a2bdc"
 GIT_TOKEN = "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" 
@@ -34,6 +34,7 @@ if not BOT_TOKEN:
         f.write(f"{BOT_TOKEN}\n{ADMIN_ID}")
     ADMIN_ID = int(ADMIN_ID)
 
+# تشغيل البوت مع خاصية المجلدات (Plugins)
 app = Client(
     "updater_session", 
     api_id=API_ID, 
@@ -42,20 +43,22 @@ app = Client(
     plugins=dict(root="plugins") 
 )
 
-# زر التحديث يظهر فقط للمطور ADMIN_ID وفي الخاص فقط
 @app.on_message(filters.command("start") & filters.user(ADMIN_ID) & filters.private)
 async def start_panel(client, message):
     btn = InlineKeyboardMarkup([[
-        InlineKeyboardButton("🔄 تحديث السورس", callback_data="full_update")
+        InlineKeyboardButton("🔄 تحديث السورس من جيت هاب", callback_data="full_update")
     ]])
-    await message.reply_text("🛠 **مرحباً يا مطور**\nيمكنك تحديث ملفات البوت من هنا.", reply_markup=btn)
+    await message.reply_text(
+        f"🛠 **أهلاً بك يا مطور ({GH_OWNER})**\n\n"
+        "هذه اللوحة مخصصة لك فقط لتحديث ملفات السورس وإعادة تشغيل البوت تلقائياً.",
+        reply_markup=btn
+    )
 
 @app.on_callback_query(filters.regex("full_update"))
 async def run_update(client, callback_query):
-    if callback_query.from_user.id != ADMIN_ID:
-        return await callback_query.answer("هذا الأمر للمطور فقط!", show_alert=True)
+    if callback_query.from_user.id != ADMIN_ID: return
     try:
-        await callback_query.answer("⏳ يتم التحديث...")
+        await callback_query.answer("⏳ يتم الآن سحب التحديثات...", show_alert=False)
         if not os.path.exists(".git"):
             repo = git.Repo.init(".")
             if "origin" not in [r.name for r in repo.remotes]:
@@ -68,9 +71,10 @@ async def run_update(client, callback_query):
         repo.git.fetch('--all')
         repo.git.reset('--hard', 'origin/main') 
         
-        await callback_query.edit_message_text("✅ تم التحديث بنجاح! جاري إعادة التشغيل...")
+        await callback_query.edit_message_text("✅ تم التحديث! جاري إعادة التشغيل لتفعيل الملفات الجديدة...")
         asyncio.get_event_loop().call_later(1, lambda: os.execl(sys.executable, sys.executable, *sys.argv))
     except Exception as e:
-        await callback_query.edit_message_text(f"❌ فشل: {e}")
+        await callback_query.edit_message_text(f"❌ فشل التحديث: {e}")
 
+print("✅ المحرك الأساسي يعمل الآن...")
 app.run()
