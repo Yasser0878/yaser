@@ -50,7 +50,7 @@ async def start_panel(client, message):
     ]])
     await message.reply_text(
         f"🛠 **أهلاً بك يا مطور ({GH_OWNER})**\n\n"
-        "هذه اللوحة مخصصة لك فقط لتحديث ملفات السورس وإعادة تشغيل البوت تلقائياً.",
+        "لوحة التحكم هذه مخصصة لك فقط لتحديث الملفات من GitHub وإعادة التشغيل تلقائياً.",
         reply_markup=btn
     )
 
@@ -58,7 +58,7 @@ async def start_panel(client, message):
 async def run_update(client, callback_query):
     if callback_query.from_user.id != ADMIN_ID: return
     try:
-        await callback_query.answer("⏳ يتم الآن سحب التحديثات...", show_alert=False)
+        await callback_query.answer("⏳ جاري جلب التحديثات...", show_alert=False)
         if not os.path.exists(".git"):
             repo = git.Repo.init(".")
             if "origin" not in [r.name for r in repo.remotes]:
@@ -71,10 +71,12 @@ async def run_update(client, callback_query):
         repo.git.fetch('--all')
         repo.git.reset('--hard', 'origin/main') 
         
-        await callback_query.edit_message_text("✅ تم التحديث! جاري إعادة التشغيل لتفعيل الملفات الجديدة...")
+        await callback_query.edit_message_text("✅ تم التحديث بنجاح! جاري إعادة التشغيل الآن...")
+        
+        # إنهاء الجلسة بأمان وإعادة التشغيل
         asyncio.get_event_loop().call_later(1, lambda: os.execl(sys.executable, sys.executable, *sys.argv))
     except Exception as e:
         await callback_query.edit_message_text(f"❌ فشل التحديث: {e}")
 
-print("✅ المحرك الأساسي يعمل الآن...")
+print("✅ البوت يعمل الآن...")
 app.run()
