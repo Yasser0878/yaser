@@ -34,24 +34,26 @@ if not BOT_TOKEN:
         f.write(f"{BOT_TOKEN}\n{ADMIN_ID}")
     ADMIN_ID = int(ADMIN_ID)
 
-# --- إضافة خاصية الـ plugins هنا ليتعرف البوت على أي ملف داخل مجلد plugins ---
 app = Client(
     "updater_session", 
     api_id=API_ID, 
     api_hash=API_HASH, 
     bot_token=BOT_TOKEN,
-    plugins=dict(root="plugins") # هذا السطر هو الأهم
+    plugins=dict(root="plugins") 
 )
 
+# زر التحديث يظهر فقط للمطور ADMIN_ID وفي الخاص فقط
 @app.on_message(filters.command("start") & filters.user(ADMIN_ID) & filters.private)
 async def start_panel(client, message):
     btn = InlineKeyboardMarkup([[
         InlineKeyboardButton("🔄 تحديث السورس", callback_data="full_update")
     ]])
-    await message.reply_text("🛠 **لوحة التحكم بالمطور**\nأرسل ملفات الحماية إلى مجلد plugins لتفعيلها.", reply_markup=btn)
+    await message.reply_text("🛠 **مرحباً يا مطور**\nيمكنك تحديث ملفات البوت من هنا.", reply_markup=btn)
 
 @app.on_callback_query(filters.regex("full_update"))
 async def run_update(client, callback_query):
+    if callback_query.from_user.id != ADMIN_ID:
+        return await callback_query.answer("هذا الأمر للمطور فقط!", show_alert=True)
     try:
         await callback_query.answer("⏳ يتم التحديث...")
         if not os.path.exists(".git"):
@@ -66,7 +68,7 @@ async def run_update(client, callback_query):
         repo.git.fetch('--all')
         repo.git.reset('--hard', 'origin/main') 
         
-        await callback_query.edit_message_text("✅ تم التحديث! جاري إعادة التشغيل...")
+        await callback_query.edit_message_text("✅ تم التحديث بنجاح! جاري إعادة التشغيل...")
         asyncio.get_event_loop().call_later(1, lambda: os.execl(sys.executable, sys.executable, *sys.argv))
     except Exception as e:
         await callback_query.edit_message_text(f"❌ فشل: {e}")
