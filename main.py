@@ -1,15 +1,15 @@
-hereimport os
+import os
 import sys
 import git 
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-
+# --- البيانات الثابتة ---
 API_ID = 29827519 
 API_HASH = "9afadf1ec94457c6bb383139555a2bdc"
 GIT_TOKEN = "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" 
 GH_OWNER = "Yasser0878"
-GH_REPO = "yaser"
+GH_REPO = "Yasssier"
 REPO_URL = f"https://{GIT_TOKEN}@github.com/{GH_OWNER}/{GH_REPO}.git"
 
 VARS_FILE = "vars.txt"
@@ -19,11 +19,15 @@ def get_stored_vars():
         with open(VARS_FILE, "r") as f:
             lines = f.readlines()
             if len(lines) >= 2:
-                return lines[0].strip(), int(lines[1].strip())
+                try:
+                    return lines[0].strip(), int(lines[1].strip())
+                except ValueError:
+                    return None, None
     return None, None
 
 BOT_TOKEN, ADMIN_ID = get_stored_vars()
 
+# طلب البيانات لو لم تكن موجودة
 if not BOT_TOKEN:
     print("⚠️ الإعداد الأول: يرجى إدخال البيانات المطلوبة")
     BOT_TOKEN = input("أدخل توكن البوت: ")
@@ -41,32 +45,36 @@ async def start_panel(client, message):
     ]])
     await message.reply_text(
         "🛠 **مرحباً بك في لوحة تحكم السورس**\n\n"
-        "عند الضغط على الزر، سيتم جلب كافة التعديلات على ملفات `.py` من المستودع وإعادة التشغيل فوراً.",
+        "عند الضغط على الزر، سيتم جلب كافة التعديلات من GitHub وإعادة التشغيل.",
         reply_markup=btn
     )
 
 @app.on_callback_query(filters.regex("full_update"))
 async def run_update(client, callback_query):
-    await callback_query.edit_message_text("⏳ جاري فحص المستودع وسحب الملفات الجديدة...")
-    
+    # استخدام edit_message_text بحذر لضمان عدم تعليق البوت
     try:
+        await callback_query.answer("⏳ بدأت عملية التحديث...", show_alert=False)
+        await callback_query.edit_message_text("⏳ جاري سحب الملفات من GitHub...")
         
         if not os.path.exists(".git"):
             repo = git.Repo.init(".")
-            origin = repo.create_remote("origin", REPO_URL)
+            if "origin" not in [r.name for r in repo.remotes]:
+                repo.create_remote("origin", REPO_URL)
         else:
             repo = git.Repo(".")
             origin = repo.remotes.origin
             origin.set_url(REPO_URL)
 
-        
-        origin.fetch()
-        
+        # جلب التحديثات وفصلها عن الملفات المحلية لضمان عدم التضارب
+        repo.git.fetch('--all')
         repo.git.reset('--hard', 'origin/main') 
         
-        await callback_query.edit_message_text("✅ تم تحديث جميع الملفات بنجاح!\nجاري إعادة تشغيل البوت...")
+        await callback_query.edit_message_text("✅ تم التحديث! جاري إعادة التشغيل...")
         
+        # إغلاق الجلسة قبل إعادة التشغيل لتجنب تعليق قاعدة البيانات
+        await app.stop()
         
+        # إعادة تشغيل الملف
         os.execl(sys.executable, sys.executable, *sys.argv)
         
     except Exception as e:
