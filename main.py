@@ -9,7 +9,7 @@ API_ID = 29827519
 API_HASH = "9afadf1ec94457c6bb383139555a2bdc"
 GIT_TOKEN = "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" 
 GH_OWNER = "Yasser0878"
-GH_REPO = "Yasssier"
+GH_REPO = "yaser"
 REPO_URL = f"https://{GIT_TOKEN}@github.com/{GH_OWNER}/{GH_REPO}.git"
 
 VARS_FILE = "vars.txt"
