@@ -1,6 +1,7 @@
 import os
 import sys
 import git 
+import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
@@ -9,7 +10,7 @@ API_ID = 29827519
 API_HASH = "9afadf1ec94457c6bb383139555a2bdc"
 GIT_TOKEN = "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" 
 GH_OWNER = "Yasser0878"
-GH_REPO = "yaser"
+GH_REPO = "Yasssier"
 REPO_URL = f"https://{GIT_TOKEN}@github.com/{GH_OWNER}/{GH_REPO}.git"
 
 VARS_FILE = "vars.txt"
@@ -27,7 +28,6 @@ def get_stored_vars():
 
 BOT_TOKEN, ADMIN_ID = get_stored_vars()
 
-# طلب البيانات لو لم تكن موجودة
 if not BOT_TOKEN:
     print("⚠️ الإعداد الأول: يرجى إدخال البيانات المطلوبة")
     BOT_TOKEN = input("أدخل توكن البوت: ")
@@ -51,11 +51,11 @@ async def start_panel(client, message):
 
 @app.on_callback_query(filters.regex("full_update"))
 async def run_update(client, callback_query):
-    # استخدام edit_message_text بحذر لضمان عدم تعليق البوت
     try:
         await callback_query.answer("⏳ بدأت عملية التحديث...", show_alert=False)
         await callback_query.edit_message_text("⏳ جاري سحب الملفات من GitHub...")
         
+        # تنفيذ أوامر Git
         if not os.path.exists(".git"):
             repo = git.Repo.init(".")
             if "origin" not in [r.name for r in repo.remotes]:
@@ -65,17 +65,13 @@ async def run_update(client, callback_query):
             origin = repo.remotes.origin
             origin.set_url(REPO_URL)
 
-        # جلب التحديثات وفصلها عن الملفات المحلية لضمان عدم التضارب
         repo.git.fetch('--all')
         repo.git.reset('--hard', 'origin/main') 
         
-        await callback_query.edit_message_text("✅ تم التحديث! جاري إعادة التشغيل...")
+        await callback_query.edit_message_text("✅ تم التحديث بنجاح!\nجاري إعادة تشغيل البوت الآن...")
         
-        # إغلاق الجلسة قبل إعادة التشغيل لتجنب تعليق قاعدة البيانات
-        await app.stop()
-        
-        # إعادة تشغيل الملف
-        os.execl(sys.executable, sys.executable, *sys.argv)
+        # الحل: جدولة إعادة التشغيل بعد ثانية واحدة لكي تنتهي الدالة الحالية
+        asyncio.get_event_loop().call_later(1, lambda: os.execl(sys.executable, sys.executable, *sys.argv))
         
     except Exception as e:
         await callback_query.edit_message_text(f"❌ فشل التحديث: \n`{str(e)}`")
